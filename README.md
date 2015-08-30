@@ -1,2 +1,2 @@
-# OpenMP
+# OpenPM
 Open source package manager
