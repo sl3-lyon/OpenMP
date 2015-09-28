@@ -1,5 +1,2 @@
 # OpenPM
-Open source package manager
-
-
-test
+Open source package manager, also known as Viper
