@@ -9,11 +9,19 @@ const JSON_OK = 0;                  // La requête est satisfaite, voir le reste
 const JSON_INVALID_REQUEST = 1;     // Requête impossible à satisfaire.
 const JSON_PACKAGE_NOT_FOUND = 2;   // Le paquet est introuvable.
 const JSON_VERSION_NOT_FOUND = 3;   // La version demandée pour ce paquet est introuvable.
-const JSON_DATABASE_ERROR = 126;    // La base de donnée ne fonctionne pas.
-const JSON_UNKOWN_ERROR = 127;      // Autre erreur (non identifiée).
+
+const TAR_OK = 4;   				// Le fichier tar.gz à bien été envoyé
+
+const DATABASE_ERROR = 126;    // La base de donnée ne fonctionne pas.
 
 const REGEX_PACKAGE = "/^[a-z0-9_+-]+$/i";
 const REGEX_VERSION = "/^[0-9]+\\.[0-9]+\\.[0-9]+$/i";
+const REGEX_FILENAME = "/^$/i"; //TODO
+
+const DIR_ALL = "file";
+const DIR_PACKAGE = "package";
+const DIR_LIB = "lib";
+const DIR_OUT = "output";
 
 /**
  * Renvoie une instance de la BDD.
@@ -24,7 +32,7 @@ function getBdd() {
     try {
         return new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     } catch (PDOException $e) {
-        sendJson(JSON_DATABASE_ERROR);
+        sendJson(DATABASE_ERROR);
     }
 }
 /**
@@ -61,4 +69,67 @@ function int2version($int) {
     $minor = ($int / 100) % 100;
     $rev   = $int % 10;
     return $major . "." . $minor . "." . $rev;
+}
+
+
+/**
+ * TODO comments
+ * TODO use regex
+ *
+ */
+function filenameValid($name) {
+	return true;
+}
+
+/**
+ * TODO comments
+ * TODO exceptions, errors, etc.
+ *
+ */
+function sendTar($filename, $package, $dependencies) {
+	$baseDir = dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . DIR_ALL . DIRECTORY_SEPARATOR;
+	$packDir = $baseDir . DIR_PACKAGE . DIRECTORY_SEPARATOR;
+	$libDir = $baseDir . DIR_LIB . DIRECTORY_SEPARATOR;
+	$outDir = $baseDir . DIR_OUT . DIRECTORY_SEPARATOR; 
+	
+	$tempFile = $outDir . $filename . ".tar";
+	
+	$phar = new PharData($tempFile);
+
+	$packageWithVersion = $package["name"] . "-" . $package["version"];
+	$phar->buildFromIterator(
+		new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($packDir . $packageWithVersion, FilesystemIterator::SKIP_DOTS)),
+			$baseDir);
+	
+	foreach($dependencies as $dependency) {
+		$dependencyWithVersion = $dependency["name"] . "-" . $dependency["version"];
+		$phar->buildFromIterator(
+			new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator($libDir . $dependencyWithVersion, FilesystemIterator::SKIP_DOTS)),
+				$baseDir);
+	}
+	
+	$phar->compress(Phar::GZ);
+	
+	$fileToSend = $tempFile . ".gz";
+	if (file_exists($fileToSend)) {
+		header('Content-Description: Archive Transfer');
+		header('Content-Type: application/x-compressed');
+		header('Content-Disposition: attachment; filename="' . basename($fileToSend) . '"');
+		header('Expires: 0');
+		header('Cache-Control: must-revalidate');
+		header('Pragma: public');
+		header('Content-Length: ' . filesize($fileToSend));
+		readfile($fileToSend);
+	}
+	
+	unlink($fileToSend); // delete tar.gz
+	
+	unset($phar);
+    Phar::unlinkArchive($tempFile); // delete tar
+	
+	echo(TAR_OK);
+	
+	exit();
 }

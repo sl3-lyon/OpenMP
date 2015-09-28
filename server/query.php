@@ -57,9 +57,15 @@ foreach ($deps as $dep) {
 	$dep["version"] = int2version($dep["version"]);
 }
 
-// Envoi
-sendJson(JSON_OK, [
-	"package" => $pack,
-	"nbVer" => $nbVer,
-	"dependencies" => $deps
-]);
+$shouldTar = false;
+if (isset($query["filename"]) && filenameValid($query["filename"])) {
+	sendTar($query["filename"], $pack, $deps);
+} else {
+	// Envoi des infos
+	sendJson(JSON_OK, [
+		"package" => $pack,
+		"nbVer" => $nbVer,
+		"dependencies" => $deps
+	]);
+}
+?>
