@@ -57,8 +57,8 @@ function version2int($ver) {
  * @return string
  */
 function int2version($int) {
-    $major = $int / 10000;
+    $major = ($int / 10000) % 10000;
     $minor = ($int / 100) % 100;
-    $rev   = $int % 100;
+    $rev   = $int % 10;
     return $major . "." . $minor . "." . $rev;
 }
