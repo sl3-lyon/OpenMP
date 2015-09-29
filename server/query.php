@@ -57,8 +57,10 @@ foreach ($deps as $dep) {
 	$dep["version"] = int2version($dep["version"]);
 }
 
-$shouldTar = false;
-if (isset($query["filename"]) && filenameValid($query["filename"])) {
+if (isset($query["filename"])) {
+	// Validation du nom de fichier de l'archive
+	filenameValid($query["filename"]);
+	// Envoi de l'archive
 	sendTar($query["filename"], $pack, $deps);
 } else {
 	// Envoi des infos
